@@ -4,8 +4,12 @@
 // 아래 링크의 docs를 참고하여 작성해주세요.
 // https://sdk.vercel.ai/docs/getting-started/nextjs-app-router
 
+// 테스팅 방법
+// 1. 로컬에서 테스트하기
+// 2. Postman으로 /api/route 엔드포인트로 보내기
+
 import { openai } from "@ai-sdk/openai";
-import { StreamingTextResponse, streamText, StreamData } from "ai";
+import { streamText } from "ai";
 
 // Allow streaming responses up to 30 seconds
 // export const maxDuration = 30;
@@ -20,15 +24,5 @@ export async function POST(req: Request) {
     messages,
   });
 
-  const data = new StreamData();
-
-  data.append({ test: "value" });
-
-  const stream = result.toAIStream({
-    onFinal(_) {
-      data.close();
-    },
-  });
-
-  return new StreamingTextResponse(stream, {}, data);
+  return result.toAIStreamResponse();
 }
