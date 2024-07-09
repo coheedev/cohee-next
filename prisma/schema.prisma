@@ -1,0 +1,75 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model LectureInfo {
+  id              String   @id @default(uuid())
+  name            String
+  chapter         Json
+  thumbnail_image String
+}
+
+model Lecture {
+  id              String   @id @default(uuid())
+  owner           String   @db.Uuid
+  lecture_info_id String
+  start_date      DateTime
+  end_date        DateTime?
+  status          String
+  current_chapter String?
+}
+
+model Chapter {
+  id          String   @id @default(uuid())
+  owner       String   @db.Uuid
+  lecture_id  String
+  start_date  DateTime
+  end_date    DateTime?
+  status      String
+}
+
+model Thread {
+  id         String   @id @default(uuid())
+  owner      String   @db.Uuid
+  chapter_id String
+}
+
+model Code {
+  id         String   @id @default(uuid())
+  owner      String   @db.Uuid
+  chapter_id String
+  created_at DateTime @default(now())
+  version    Int
+}
+
+model LLMModule {
+  id            String   @id @default(uuid())
+  name          String
+  version       Int
+  created_at    DateTime @default(now())
+  description   String?
+  system_prompt String?
+}
+
+model Message {
+  id         String   @id @default(uuid())
+  owner      String   @db.Uuid
+  thread_id  String
+  role       String
+  module_id  String
+  content    String
+  created_at DateTime @default(now())
+}
