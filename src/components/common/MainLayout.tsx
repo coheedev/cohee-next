@@ -248,8 +248,7 @@ export function MainLayout() {
               <div className="flex flex-col justify-between p-4 gap-4 flex-1">
                 <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y-auto h-0">
                   <MessageBubble className="bg-[#002991] text-white">
-                    {`### Hello World!!
-                    This is a test message from Cohee.`}
+                    {`### Hello World!!\nThis is a test message from Cohee.`}
                   </MessageBubble>
                   {/* {coheeMessages.flatMap((message, messageIndex) =>
                     message.content.map((contentItem, contentIndex) => (
