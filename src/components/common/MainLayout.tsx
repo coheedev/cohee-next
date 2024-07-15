@@ -20,6 +20,8 @@ import {
   lectureState,
   chapterState,
 } from "@/recoil/atoms";
+import { SendIcon } from "./Icon/SendIcon";
+import { MessageBubble } from "../MessageBubble";
 
 export function MainLayout() {
   const [isEditorReady, setIsEditorReady] = useState(false);
@@ -64,7 +66,7 @@ export function MainLayout() {
       }
     };
 
-    initialize();
+    // initialize();
   }, [
     setLectureState,
     setChapterState,
@@ -99,8 +101,9 @@ export function MainLayout() {
           thread: gptThread?.id ?? null,
           role: "user",
           llm_module: null,
-          content: text,
+          content: [{ type: "text", content: text }],
           tokens: null,
+          content_old: null,
         },
       ]);
       const gptResponse = await fetch("/api/cohee/code-generator", {
@@ -153,7 +156,8 @@ export function MainLayout() {
           thread: coheeThread?.id ?? null,
           role: "assistant",
           llm_module: "036f3402-5ef0-4d4a-b6d6-200097e979bb", // prompt feedback generator version 1
-          content: "",
+          content: [{ type: "text", content: text }],
+          content_old: null,
           tokens: null,
         },
       ]);
@@ -169,7 +173,7 @@ export function MainLayout() {
           // Create a new object to avoid mutating the existing one
           newMessages[lastMessageIndex] = {
             ...newMessages[lastMessageIndex],
-            content: coheeResult,
+            content: [{ type: "text", content: coheeResult }],
           };
           return newMessages;
         });
@@ -200,13 +204,15 @@ export function MainLayout() {
   };
 
   return (
-    <ResizablePanelGroup
-      direction="horizontal"
-      className="w-screen h-screen rounded-lg border"
-    >
+    <ResizablePanelGroup direction="horizontal" className="flex-1">
       {/* 왼쪽 메뉴바 */}
-      <ResizablePanel defaultSize={10} minSize={10}>
-        <div className="flex h-screen items-center justify-between p-6 bg-transparent flex-col">
+      <ResizablePanel
+        defaultSize={10}
+        minSize={10}
+        maxSize={10}
+        className="bg-white"
+      >
+        <div className="flex h-full items-center justify-between px-2 py-6 bg-transparent flex-col">
           <div>
             <span className="font-semibold">여기는 왼쪽 메뉴입니다.</span>
           </div>
@@ -226,35 +232,64 @@ export function MainLayout() {
       </ResizablePanel>
       <ResizableHandle />
       {/* 오른쪽 패널 */}
-      <ResizablePanel defaultSize={90} minSize={85}>
+      <ResizablePanel defaultSize={90} minSize={85} className="p-6">
         <ResizablePanelGroup direction="horizontal">
           {/* 코희 패널 */}
-          <ResizablePanel defaultSize={50} minSize={40}>
-            <div className="flex flex-col h-full items-center justify-between p-6 gap-4">
-              <div className="h-full w-full">
-                <span className="font-semibold">여기는 코희 패널입니다.</span>
-                {coheeMessages.map((message, index) => (
-                  <div key={index}>{message.content}</div>
-                ))}
+          <ResizablePanel
+            defaultSize={30}
+            minSize={30}
+            maxSize={50}
+            className="flex flex-col pr-6"
+          >
+            <div className="flex flex-col rounded-xl bg-white overflow-hidden flex-1">
+              <div className="p-4 bg-[#002991]">
+                <span className="font-semibold text-white text-lg">Cohee</span>
               </div>
-              <Textarea placeholder="Type your message here." />
+              <div className="flex flex-col justify-between p-4 gap-4 flex-1">
+                <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y-auto h-0">
+                  <MessageBubble className="bg-[#002991] text-white">
+                    {`### Hello World!!
+                    This is a test message from Cohee.`}
+                  </MessageBubble>
+                  {/* {coheeMessages.flatMap((message, messageIndex) =>
+                    message.content.map((contentItem, contentIndex) => (
+                      <MessageBubble key={`${messageIndex}-${contentIndex}`}>
+                        {contentItem.content}
+                      </MessageBubble>
+                    ))
+                  )} */}
+                </div>
+                <Textarea
+                  placeholder="코희에게 질문해보세요."
+                  rightIcon={<SendIcon />}
+                  rows={1}
+                />
+              </div>
             </div>
           </ResizablePanel>
-          <ResizableHandle />
+          <ResizableHandle withHandle />
           {/* gpt 패널 */}
-          <ResizablePanel defaultSize={50} minSize={40}>
+          <ResizablePanel
+            defaultSize={60}
+            minSize={50}
+            maxSize={60}
+            className="pl-6"
+          >
             <ResizablePanelGroup direction="vertical">
               {/* 코드 에디터 패널 */}
               <ResizablePanel defaultSize={50} minSize={40}>
-                <div className="flex h-full items-center justify-center p-6 bg-slate-500 flex-col">
+                <div className="flex h-full items-center justify-center bg-neutral-700 flex-col rounded-lg overflow-hidden">
                   <Tabs
                     defaultValue="code"
                     className="w-full h-full flex flex-col"
                   >
-                    <TabsList className="w-1/4">
-                      <TabsTrigger value="code">Code</TabsTrigger>
-                      <TabsTrigger value="preview">Preview</TabsTrigger>
-                    </TabsList>
+                    <div className="flex justify-between items-center px-4 py-2">
+                      <div className="text-white">{currentCode?.language}</div>
+                      <TabsList className="">
+                        <TabsTrigger value="code">Code</TabsTrigger>
+                        <TabsTrigger value="preview">Preview</TabsTrigger>
+                      </TabsList>
+                    </div>
                     <TabsContent value="code" className="flex-1 w-full">
                       <Editor
                         height="100%"
@@ -270,26 +305,28 @@ export function MainLayout() {
                     </TabsContent>
                   </Tabs>
                 </div>
-                y
               </ResizablePanel>
-              <ResizableHandle />
+              <ResizableHandle withHandle />
               {/* gpt 대화 패널 */}
               <ResizablePanel defaultSize={50} minSize={30}>
-                <div className="flex flex-col h-full items-center justify-between p-6 gap-4">
-                  <div className="h-full w-full">
-                    <span className="font-semibold">
-                      여기는 GPT 대화 패널입니다.
-                    </span>
-                    {gptMessages
+                <div className="flex flex-col h-full items-end justify-between px-1 py-6 gap-4">
+                  <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y-auto h-0">
+                    {/* {gptMessages
                       .filter((message) => message.role !== "assistant")
                       .map((message, index) => (
-                        <div key={index}>{message.content}</div>
-                      ))}
+                        <MessageBubble
+                          key={index}
+                          className="bg-[#002991] text-white"
+                        >
+                          {message.content}
+                        </MessageBubble>
+                      ))} */}
                   </div>
                   <Textarea
-                    placeholder="Type your message here."
+                    placeholder="GPT에게 지시를 내려보세요."
                     onKeyDown={(event) => handleTextareaSubmit(event, "gpt")}
                     disabled={isLoading}
+                    rightIcon={<SendIcon />}
                   />
                 </div>
               </ResizablePanel>

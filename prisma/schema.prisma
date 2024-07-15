@@ -9,6 +9,7 @@ datasource db {
   directUrl = env("DIRECT_URL")
   schemas   = ["auth", "public"]
 }
+
 /// RLS: https://medium.com/@ngoctranfire/using-prisma-with-supabase-row-level-security-and-multi-schema-7c53418adba3
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
@@ -393,6 +394,7 @@ model lecture_info {
   title                                      String?
   thumbnail_image                            String?
   chapter                                    String?
+  initial_message                            Json[]
   lecture_lecture_lecture_infoTolecture_info lecture[] @relation("lecture_lecture_infoTolecture_info")
 
   @@schema("public")
@@ -417,8 +419,9 @@ model message {
   thread                                    String?       @db.Uuid
   role                                      message_role?
   llm_module                                String?       @db.Uuid
-  content                                   String?
+  content_old                               String?
   tokens                                    Int?
+  content                                   Json[]
   llm_module_message_llm_moduleTollm_module llm_module?   @relation("message_llm_moduleTollm_module", fields: [llm_module], references: [id], onUpdate: NoAction)
   users                                     users?        @relation(fields: [owner], references: [id], onUpdate: NoAction)
   thread_message_threadTothread             thread?       @relation("message_threadTothread", fields: [thread], references: [id], onUpdate: NoAction)
