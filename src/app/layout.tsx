@@ -21,6 +21,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { SearchCommand } from "@/components/icons/searchcommand";
+import { UserMenu } from "@/components/icons/UserMenu";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserIcon } from "lucide-react";
+import { CourseIcon } from "@/components/common/Icon/CourseIcon";
+import { MyCourseIcon } from "@/components/common/Icon/MyCourseIcon";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -51,7 +57,12 @@ export default function RootLayout({
                 </Link>
                 <Link href="/">
                   <div className="px-5">
-                    <RocketIcon />
+                    <CourseIcon />
+                  </div>
+                </Link>
+                <Link href="/">
+                  <div className="px-5">
+                    <MyCourseIcon />
                   </div>
                 </Link>
               </div>
@@ -65,13 +76,12 @@ export default function RootLayout({
                     </DialogTrigger>
                     <DialogContent>
                       <DialogHeader>
-                        <DialogTitle>Are you absolutely sure?</DialogTitle>
+                        <DialogTitle>Search</DialogTitle>
                         <DialogDescription>
-                          This action cannot be undone. This will permanently
-                          delete your account and remove your data from our
-                          servers.
+                          Use the command menu to search or navigate.
                         </DialogDescription>
                       </DialogHeader>
+                      <SearchCommand />
                     </DialogContent>
                   </Dialog>
                   <Popover>
@@ -79,15 +89,15 @@ export default function RootLayout({
                       <NotificationIcon />
                     </PopoverTrigger>
                     <PopoverContent className="mr-2">
-                      Place content for the popover here.
+                      No notifications yet.
                     </PopoverContent>
                   </Popover>
                   <Popover>
                     <PopoverTrigger>
-                      <div className="h-9 w-9 rounded-full bg-slate-400"></div>
+                      <UserMenu />
                     </PopoverTrigger>
-                    <PopoverContent className="mr-2">
-                      Place content for the popover here.
+                    <PopoverContent className="p-0">
+                      <UserMenu />
                     </PopoverContent>
                   </Popover>
                 </div>
