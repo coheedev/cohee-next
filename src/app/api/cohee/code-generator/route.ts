@@ -110,6 +110,7 @@ async function codeGenerator(
       thread: gpt_thread_id,
       role: "user",
       content: JSON.stringify([{ type: "text", content: text }]),
+      // test commit
       tokens: result.usage.promptTokens,
     },
   });
