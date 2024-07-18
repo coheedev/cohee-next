@@ -15,13 +15,13 @@ export function SendIcon() {
         d="M6.6665 8.75L9.99984 5.83333L13.3332 8.75"
         stroke="#F4F4F4"
         stroke-width="1.8"
-        stroke-linecap="round"
+        strokeLinecap="round"
       />
       <path
         d="M10 5.83333V14.1667"
         stroke="#F4F4F4"
         stroke-width="1.8"
-        stroke-linecap="round"
+        strokeLinecap="round"
       />
     </svg>
   );

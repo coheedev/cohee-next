@@ -88,5 +88,5 @@ h3 {
 }
 
 p {
-  @apply text-base;
+  @apply text-sm;
 }

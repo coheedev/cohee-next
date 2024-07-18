@@ -109,7 +109,7 @@ async function codeGenerator(
       owner,
       thread: gpt_thread_id,
       role: "user",
-      content: text,
+      content: JSON.stringify([{ type: "text", content: text }]),
       tokens: result.usage.promptTokens,
     },
   });
@@ -120,7 +120,7 @@ async function codeGenerator(
       owner,
       thread: gpt_thread_id,
       role: "assistant",
-      content: code,
+      content: JSON.stringify([{ type: "code", content: code }]),
       llm_module,
       tokens: result.usage.completionTokens,
     },

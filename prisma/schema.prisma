@@ -394,7 +394,7 @@ model lecture_info {
   title                                      String?
   thumbnail_image                            String?
   chapter                                    String?
-  initial_message                            Json[]
+  initial_message                            String?
   lecture_lecture_lecture_infoTolecture_info lecture[] @relation("lecture_lecture_infoTolecture_info")
 
   @@schema("public")
@@ -421,7 +421,7 @@ model message {
   llm_module                                String?       @db.Uuid
   content_old                               String?
   tokens                                    Int?
-  content                                   Json[]
+  content                                   String?
   llm_module_message_llm_moduleTollm_module llm_module?   @relation("message_llm_moduleTollm_module", fields: [llm_module], references: [id], onUpdate: NoAction)
   users                                     users?        @relation(fields: [owner], references: [id], onUpdate: NoAction)
   thread_message_threadTothread             thread?       @relation("message_threadTothread", fields: [thread], references: [id], onUpdate: NoAction)
