@@ -5,7 +5,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import Editor, { OnMount } from "@monaco-editor/react";
+import Editor, { OnMount, OnChange } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,6 +26,7 @@ import { SendIcon } from "./common/Icon/SendIcon";
 import { MessageBubble } from "./MessageBubble";
 import { MessageContentItem } from "@/types/types";
 import { CoheeThread } from "./CoheeThread";
+import Preview from "./Preview";
 
 export function LectureLayout({ lecture_id }: { lecture_id: string }) {
   const [isEditorReady, setIsEditorReady] = useState(false);
@@ -56,6 +57,32 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
     editorRef.current = editor;
     setIsEditorReady(true);
   };
+
+  const handleSave = () => {
+    if (editorRef.current) {
+      const code = editorRef.current.getValue();
+      setCodeState((prev) => ({
+        ...prev,
+        code: code,
+        language: prev?.language || "html", // Ensure language is always defined
+      }));
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key === "s") {
+        event.preventDefault();
+        handleSave();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -352,8 +379,8 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
                         theme="vs-dark"
                       />
                     </TabsContent>
-                    <TabsContent value="preview">
-                      여기는 미리보기가 나옵니다.
+                    <TabsContent value="preview" className="flex-1 w-full">
+                      <Preview />
                     </TabsContent>
                   </Tabs>
                 </div>
