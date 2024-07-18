@@ -18,7 +18,7 @@ export function NotificationIcon() {
         rx="4.3"
         fill="white"
         stroke="#525252"
-        stroke-width="1.4"
+        strokeWidth="1.4"
       />
       <mask
         id="path-2-outside-1_79_389"
@@ -53,7 +53,7 @@ export function NotificationIcon() {
         r="3.3"
         fill="#002991"
         stroke="white"
-        stroke-width="1.6"
+        strokeWidth="1.6"
       />
     </svg>
   );

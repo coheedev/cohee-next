@@ -59,7 +59,12 @@ async function promptFeedbackGenerator(
             owner,
             thread: cohee_thread_id,
             role: "assistant",
-            content: result.text,
+            content: JSON.stringify([
+              {
+                type: "text",
+                content: result.text,
+              },
+            ]),
             llm_module,
             tokens: result.usage.completionTokens,
           },

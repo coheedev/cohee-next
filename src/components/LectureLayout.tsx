@@ -1,7 +1,5 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
-import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -27,6 +25,7 @@ import {
 import { SendIcon } from "./common/Icon/SendIcon";
 import { MessageBubble } from "./MessageBubble";
 import { MessageContentItem } from "@/types/types";
+import { CoheeThread } from "./CoheeThread";
 
 export function LectureLayout({ lecture_id }: { lecture_id: string }) {
   const [isEditorReady, setIsEditorReady] = useState(false);
@@ -84,6 +83,14 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
           (message: { content: string }) => JSON.parse(message.content)
         );
         setCoheeMessageContent(coheeContent);
+
+        // Set the latest code state
+        if (data.latestCode) {
+          setCodeState({
+            language: data.latestCode.language,
+            code: data.latestCode.content,
+          });
+        }
       } catch (error) {
         console.error("Failed to initialize data:", error);
       }
@@ -100,6 +107,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
     setGptMessagesState,
     setGptMessageContent,
     setCoheeMessageContent,
+    setCodeState,
   ]);
 
   useEffect(() => {
@@ -285,7 +293,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
       <ResizablePanel
         defaultSize={90}
         minSize={85}
-        className="p-6 box-border h-full overflow-hidden"
+        className="p-4 box-border h-full overflow-hidden"
       >
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* 코희 패널 */}
@@ -293,27 +301,14 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
             defaultSize={30}
             minSize={30}
             maxSize={50}
-            className="flex flex-col pr-6"
+            className="flex flex-col pr-4"
           >
             <div className="flex flex-col rounded-xl bg-white overflow-hidden flex-1">
-              <div className="p-4 bg-[#002991]">
+              <div className="py-2 px-4 bg-[#002991]">
                 <span className="font-semibold text-white text-lg">Cohee</span>
               </div>
-              <div className="flex flex-col justify-between p-4 gap-4 flex-1">
-                <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y h-0">
-                  {coheeMessageContent.map((contentItem, contentIndex) => {
-                    if (!contentItem) return null;
-                    return (
-                      <MessageBubble
-                        key={contentIndex}
-                        className="bg-white text-black"
-                        type={contentItem?.type}
-                      >
-                        {contentItem?.content}
-                      </MessageBubble>
-                    );
-                  })}
-                </div>
+              <div className="flex flex-col py-3 px-4 h-full justify-between">
+                <CoheeThread coheeMessageContent={coheeMessageContent} />
                 <Textarea
                   placeholder="코희에게 질문해보세요."
                   onKeyDown={(event) => handleTextareaSubmit(event, "cohee")}
@@ -330,7 +325,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
             defaultSize={60}
             minSize={50}
             maxSize={60}
-            className="pl-6"
+            className="pl-4"
           >
             <ResizablePanelGroup direction="vertical">
               {/* 코드 에디터 패널 */}
@@ -340,7 +335,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
                     defaultValue="code"
                     className="w-full h-full flex flex-col"
                   >
-                    <div className="flex justify-between items-center px-4 py-2">
+                    <div className="flex justify-between items-center px-4 py-1 bg-neutral-700">
                       <div className="text-white">{currentCode?.language}</div>
                       <TabsList className="">
                         <TabsTrigger value="code">Code</TabsTrigger>
@@ -366,7 +361,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
               <ResizableHandle withHandle />
               {/* gpt 대화 패널 */}
               <ResizablePanel defaultSize={50} minSize={30}>
-                <div className="flex flex-col h-full items-end justify-between px-1 py-6 gap-4">
+                <div className="flex flex-col h-full items-end justify-between px-1 py-3 gap-4">
                   <div className="flex flex-col flex-1 justify-start items-start gap-1 overflow-y-auto h-0">
                     {gptMessageContent.map((contentItem, index) => (
                       <MessageBubble

@@ -33,11 +33,19 @@ export function MessageBubble({
     return (
       <div
         className={cn(
-          "rounded-xl text-xs border shadow-sm px-4 py-2 bg-white w-full h-full relative",
+          "rounded-xl text-xs border shadow-sm bg-white w-full h-full relative min-h-[200px]",
           className
         )}
       >
-        <Image key={children} src={children} fill={true} alt="cohee-image" />
+        <div className="relative w-full h-full">
+          <Image
+            key={children}
+            src={children}
+            alt="cohee-image"
+            layout="fill"
+            objectFit="contain"
+          />
+        </div>
       </div>
     );
   }

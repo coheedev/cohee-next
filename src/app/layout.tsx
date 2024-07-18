@@ -57,7 +57,7 @@ export default function RootLayout({
               </div>
             </div>
             <div className="flex flex-col flex-1">
-              <div className="h-[64px] bg-white flex justify-end items-center pr-8 pl-5 shadow-lg border-b">
+              <div className="h-[52px] bg-white flex justify-end items-center pr-8 pl-5 shadow-lg border-b">
                 <div className="flex items-center gap-4">
                   <Dialog>
                     <DialogTrigger>
