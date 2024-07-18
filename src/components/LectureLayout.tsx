@@ -1,5 +1,7 @@
 "use client";
 import React, { useRef, useState, useEffect } from "react";
+import Image from "next/image";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -9,21 +11,24 @@ import Editor, { OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useRecoilState, useSetRecoilState } from "recoil";
+import { useRecoilState } from "recoil";
 import {
   codeState,
   currentContentState,
   coheeThreadState,
   coheeMessagesState,
+  coheeMessagesContentState,
   gptThreadState,
   gptMessagesState,
+  gptMessagesContentState,
   lectureState,
   chapterState,
 } from "@/recoil/atoms";
-import { SendIcon } from "./Icon/SendIcon";
-import { MessageBubble } from "../MessageBubble";
+import { SendIcon } from "./common/Icon/SendIcon";
+import { MessageBubble } from "./MessageBubble";
+import { MessageContentItem } from "@/types/types";
 
-export function MainLayout() {
+export function LectureLayout({ lecture_id }: { lecture_id: string }) {
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
@@ -34,8 +39,14 @@ export function MainLayout() {
   const [coheeThread, setCoheeThreadState] = useRecoilState(coheeThreadState);
   const [coheeMessages, setCoheeMessagesState] =
     useRecoilState(coheeMessagesState);
+  const [coheeMessageContent, setCoheeMessageContent] = useRecoilState(
+    coheeMessagesContentState
+  );
   const [gptThread, setGptThreadState] = useRecoilState(gptThreadState);
   const [gptMessages, setGptMessagesState] = useRecoilState(gptMessagesState);
+  const [gptMessageContent, setGptMessageContent] = useRecoilState(
+    gptMessagesContentState
+  );
   const [lecture, setLectureState] = useRecoilState(lectureState);
   const [chapter, setChapterState] = useRecoilState(chapterState);
 
@@ -49,8 +60,9 @@ export function MainLayout() {
 
   useEffect(() => {
     const initialize = async () => {
+      if (!lecture_id) return;
       try {
-        const response = await fetch("/api/initialize", {
+        const response = await fetch(`/api/cohee/initialize/${lecture_id}`, {
           method: "POST",
         });
         const data = await response.json();
@@ -61,19 +73,33 @@ export function MainLayout() {
         setCoheeMessagesState(data.coheeMessages);
         setGptThreadState(data.gptThread);
         setGptMessagesState(data.gptMessages);
+
+        // Extract and flatten content and store it in gptMessageContent and coheeMessageContent
+        // Extract and flatten content and store it in gptMessageContent and coheeMessageContent
+        const gptContent: MessageContentItem[] = data.gptMessages.flatMap(
+          (message: { content: string }) => JSON.parse(message.content)
+        );
+        setGptMessageContent(gptContent);
+        const coheeContent: MessageContentItem[] = data.coheeMessages.flatMap(
+          (message: { content: string }) => JSON.parse(message.content)
+        );
+        setCoheeMessageContent(coheeContent);
       } catch (error) {
         console.error("Failed to initialize data:", error);
       }
     };
 
-    // initialize();
+    initialize();
   }, [
+    lecture_id,
     setLectureState,
     setChapterState,
     setCoheeThreadState,
     setCoheeMessagesState,
     setGptThreadState,
     setGptMessagesState,
+    setGptMessageContent,
+    setCoheeMessageContent,
   ]);
 
   useEffect(() => {
@@ -86,26 +112,62 @@ export function MainLayout() {
 
   const handleCoheeMessageSubmit = async (text: string) => {
     setIsLoading(true);
+    try {
+      // Update coheeMessageContent state
+      setCoheeMessageContent((prevContent) => [
+        ...prevContent,
+        { type: "text", content: text },
+      ]);
+
+      const coheeResponse = await fetch(
+        "/api/cohee/prompt-feedback-generator",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            text,
+            cohee_thread_id: coheeThread?.id,
+          }),
+        }
+      );
+
+      const reader = coheeResponse.body?.getReader();
+      if (!reader) throw new Error("Failed to get reader from Cohee response");
+      const decoder = new TextDecoder();
+      let coheeResult = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        coheeResult += decoder.decode(value);
+
+        setCoheeMessageContent((prevContent) => {
+          return prevContent.map((message, index) => {
+            if (index === prevContent.length - 1) {
+              return { type: "text", content: coheeResult };
+            }
+            return message;
+          });
+        });
+      }
+    } catch (error) {
+      console.error("Failed to send Cohee message:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleGptMessageSubmit = async (text: string) => {
     setIsLoading(true);
     try {
       // First request to /api/cohee/code-generator
-      setGptMessagesState((prevMessages) => [
-        ...prevMessages,
-        {
-          id: "", // Set appropriate id
-          created_at: new Date(),
-          owner: "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5",
-          thread: gptThread?.id ?? null,
-          role: "user",
-          llm_module: null,
-          content: [{ type: "text", content: text }],
-          tokens: null,
-          content_old: null,
-        },
+      setGptMessageContent((prevContent) => [
+        ...prevContent,
+        { type: "text", content: text },
       ]);
+
       const gptResponse = await fetch("/api/cohee/code-generator", {
         method: "POST",
         headers: {
@@ -147,19 +209,9 @@ export function MainLayout() {
       let coheeResult = "";
 
       // Add an initial empty message
-      setCoheeMessagesState((prevMessages) => [
-        ...prevMessages,
-        {
-          id: "",
-          created_at: new Date(),
-          owner: "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5",
-          thread: coheeThread?.id ?? null,
-          role: "assistant",
-          llm_module: "036f3402-5ef0-4d4a-b6d6-200097e979bb", // prompt feedback generator version 1
-          content: [{ type: "text", content: text }],
-          content_old: null,
-          tokens: null,
-        },
+      setCoheeMessageContent((prevContent) => [
+        ...prevContent,
+        { type: "text", content: "" },
       ]);
 
       while (true) {
@@ -167,19 +219,17 @@ export function MainLayout() {
         if (done) break;
         coheeResult += decoder.decode(value);
 
-        setCoheeMessagesState((prevMessages) => {
-          const newMessages = [...prevMessages];
-          const lastMessageIndex = newMessages.length - 1;
-          // Create a new object to avoid mutating the existing one
-          newMessages[lastMessageIndex] = {
-            ...newMessages[lastMessageIndex],
-            content: [{ type: "text", content: coheeResult }],
-          };
-          return newMessages;
+        setCoheeMessageContent((prevContent) => {
+          return prevContent.map((message, index) => {
+            if (index === prevContent.length - 1) {
+              return { type: "text", content: coheeResult };
+            }
+            return message;
+          });
         });
       }
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Failed to send GPT message:", error);
     } finally {
       setIsLoading(false);
     }
@@ -232,8 +282,12 @@ export function MainLayout() {
       </ResizablePanel>
       <ResizableHandle />
       {/* 오른쪽 패널 */}
-      <ResizablePanel defaultSize={90} minSize={85} className="p-6">
-        <ResizablePanelGroup direction="horizontal">
+      <ResizablePanel
+        defaultSize={90}
+        minSize={85}
+        className="p-6 box-border h-full overflow-hidden"
+      >
+        <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* 코희 패널 */}
           <ResizablePanel
             defaultSize={30}
@@ -246,20 +300,24 @@ export function MainLayout() {
                 <span className="font-semibold text-white text-lg">Cohee</span>
               </div>
               <div className="flex flex-col justify-between p-4 gap-4 flex-1">
-                <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y-auto h-0">
-                  <MessageBubble className="bg-[#002991] text-white">
-                    {`### Hello World!!\nThis is a test message from Cohee.`}
-                  </MessageBubble>
-                  {/* {coheeMessages.flatMap((message, messageIndex) =>
-                    message.content.map((contentItem, contentIndex) => (
-                      <MessageBubble key={`${messageIndex}-${contentIndex}`}>
-                        {contentItem.content}
+                <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y h-0">
+                  {coheeMessageContent.map((contentItem, contentIndex) => {
+                    if (!contentItem) return null;
+                    return (
+                      <MessageBubble
+                        key={contentIndex}
+                        className="bg-white text-black"
+                        type={contentItem?.type}
+                      >
+                        {contentItem?.content}
                       </MessageBubble>
-                    ))
-                  )} */}
+                    );
+                  })}
                 </div>
                 <Textarea
                   placeholder="코희에게 질문해보세요."
+                  onKeyDown={(event) => handleTextareaSubmit(event, "cohee")}
+                  disabled={isLoading}
                   rightIcon={<SendIcon />}
                   rows={1}
                 />
@@ -309,17 +367,16 @@ export function MainLayout() {
               {/* gpt 대화 패널 */}
               <ResizablePanel defaultSize={50} minSize={30}>
                 <div className="flex flex-col h-full items-end justify-between px-1 py-6 gap-4">
-                  <div className="flex flex-col flex-1 justify-start items-start gap-2 overflow-y-auto h-0">
-                    {/* {gptMessages
-                      .filter((message) => message.role !== "assistant")
-                      .map((message, index) => (
-                        <MessageBubble
-                          key={index}
-                          className="bg-[#002991] text-white"
-                        >
-                          {message.content}
-                        </MessageBubble>
-                      ))} */}
+                  <div className="flex flex-col flex-1 justify-start items-start gap-1 overflow-y-auto h-0">
+                    {gptMessageContent.map((contentItem, index) => (
+                      <MessageBubble
+                        key={index}
+                        className="bg-[#002991] text-white"
+                        type={contentItem?.type}
+                      >
+                        {contentItem.content}
+                      </MessageBubble>
+                    ))}
                   </div>
                   <Textarea
                     placeholder="GPT에게 지시를 내려보세요."

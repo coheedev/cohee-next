@@ -1,5 +1,6 @@
 import { atom } from "recoil";
 import { thread, chapter, lecture, message } from "@prisma/client";
+import { MessageContentItem } from "@/types/types";
 
 export const codeState = atom<{ language: string; code: string } | null>({
   key: "codeState",
@@ -21,6 +22,11 @@ export const coheeMessagesState = atom<message[]>({
   default: [],
 });
 
+export const coheeMessagesContentState = atom<MessageContentItem[]>({
+  key: "coheeMessagesContentState",
+  default: [],
+});
+
 export const gptThreadState = atom<thread | null>({
   key: "gptThreadState",
   default: null,
@@ -28,6 +34,11 @@ export const gptThreadState = atom<thread | null>({
 
 export const gptMessagesState = atom<message[]>({
   key: "gptMessagesState",
+  default: [],
+});
+
+export const gptMessagesContentState = atom<MessageContentItem[]>({
+  key: "gptMessagesContentState",
   default: [],
 });
 

@@ -67,3 +67,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+body {
+  overflow: hidden;
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+}
+
+h1 {
+  @apply text-3xl font-bold;
+}
+
+h2 {
+  @apply text-2xl font-bold;
+}
+
+h3 {
+  @apply text-lg font-bold;
+}
+
+p {
+  @apply text-sm;
+}
