@@ -1,9 +1,9 @@
 import { LectureLayout } from "@/components/LectureLayout";
 
-export default function Page({ params }: { params: { lecture_id: string } }) {
+export default function Page({ params }: { params: { lectureId: string } }) {
   return (
     <main className="flex flex-1 bg-[#F3F7FA]">
-      <LectureLayout lecture_id={params.lecture_id} />
+      <LectureLayout lectureId={params.lectureId} />
     </main>
   );
 }
