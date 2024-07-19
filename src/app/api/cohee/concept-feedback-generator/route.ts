@@ -51,29 +51,41 @@ export async function POST(req: Request) {
   );
 
   const stringifiedScript = combinedThreads
-    .map(
-      (message) => `${message.role === "user" ? "S:" : "T:"} ${message.content}`
-    )
+    .map((message) => {
+      const parsedContent = JSON.parse(message.content ?? "[]");
+      const textContents = parsedContent
+        .filter(
+          (item: { type: string; content: string }) => item.type !== "image"
+        )
+        .map((item: { type: string; content: string }) => item.content)
+        .join("\n");
+      return `${message.role === "user" ? "S:" : "T:"} ${textContents}`;
+    })
     .join("\n");
 
-  if (current_content === "1.1") {
+  // streaming 끝나면 메시지 데이터 같이 리턴. 그래야 front에서 thread에 추가하거나 message에 업데이트할 수 있음. 근데 이거 어떻게 하지? data object 봤던거 같은데..
+  if (
+    current_content === "0" ||
+    current_content === "1" ||
+    current_content === "1.1"
+  ) {
     const result = await content1_1ConceptGenerator(
       stringifiedScript,
       cohee_thread_id
     );
-    return result.toAIStreamResponse();
+    return result.toTextStreamResponse();
   } else if (current_content === "1.2") {
     const result = await content1_2ConceptGenerator(
       stringifiedScript,
       cohee_thread_id
     );
-    return result.toAIStreamResponse();
+    return result.toTextStreamResponse();
   } else if (current_content === "1.3") {
     const result = await content1_3ConceptGenerator(
       stringifiedScript,
       cohee_thread_id
     );
-    return result.toAIStreamResponse();
+    return result.toTextStreamResponse();
   } else {
     return new Response(JSON.stringify({ error: "Invalid current step" }), {
       status: 400,
@@ -93,7 +105,6 @@ async function content1_1ConceptGenerator(
     messages: [],
     onFinish: async (result) => {
       const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
-      const chapter = "89ebb8ef-2651-49cb-9216-5c2c9a32d4b4";
       const llm_module = "36562c2c-c61b-4f21-b9cf-0a5f3f8d5015"; // L1C1_1 concept feedback generator version 1
 
       if (result.finishReason === "stop") {
@@ -103,7 +114,12 @@ async function content1_1ConceptGenerator(
             owner,
             llm_module,
             role: "user",
-            content: system_prompt,
+            content: JSON.stringify([
+              {
+                type: "text",
+                content: system_prompt,
+              },
+            ]),
             tokens: result.usage.promptTokens,
           },
         });
@@ -114,7 +130,12 @@ async function content1_1ConceptGenerator(
             owner,
             thread: cohee_thread_id,
             role: "assistant",
-            content: result.text,
+            content: JSON.stringify([
+              {
+                type: "text",
+                content: result.text,
+              },
+            ]),
             llm_module,
             tokens: result.usage.completionTokens,
           },
@@ -138,7 +159,6 @@ async function content1_2ConceptGenerator(
     messages: [],
     onFinish: async (result) => {
       const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
-      const chapter = "89ebb8ef-2651-49cb-9216-5c2c9a32d4b4";
       const llm_module = "c029137f-6d55-4a13-a931-b32d01fccbab"; // L1C1_2 concept feedback generator version 1
 
       if (result.finishReason === "stop") {
@@ -183,7 +203,6 @@ async function content1_3ConceptGenerator(
     messages: [],
     onFinish: async (result) => {
       const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
-      const chapter = "89ebb8ef-2651-49cb-9216-5c2c9a32d4b4";
       const llm_module = "4790b2da-f882-44d3-bcfc-82c9b7983b70"; // L1C1_3 concept feedback generator version 1
 
       if (result.finishReason === "stop") {

@@ -76,17 +76,26 @@ body {
 }
 
 h1 {
-  @apply text-3xl font-bold;
+  @apply text-3xl font-bold my-4;
 }
 
 h2 {
-  @apply text-2xl font-bold;
+  @apply text-2xl font-bold my-4;
 }
 
 h3 {
-  @apply text-lg font-bold;
+  @apply text-lg font-bold my-3;
 }
 
 p {
-  @apply text-sm;
+  @apply text-sm my-2;
+}
+
+pre {
+  white-space: pre-wrap; /* Enable wrapping */
+  word-wrap: break-word; /* Ensure long words break properly */
+}
+
+pre code {
+  @apply text-xs;
 }

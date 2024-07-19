@@ -38,6 +38,8 @@ export async function POST(req: Request) {
   return result.toJsonResponse();
 }
 
+// TODO: 이전 context와 코드를 context로 제공하지 않아도 되나?
+// gpt thread의 context를 제공하면 좋을 듯. -> thread에 message 추가하는 것도 좋을 듯
 async function codeGenerator(
   text: string,
   gpt_thread_id: string,
@@ -61,6 +63,7 @@ async function codeGenerator(
   ];
 
   // streamObject() 을 사용하는 것도 나중에 하면 좋을 것
+  // 또는 그냥 streaming을 쓰되, 틱 3개로 언어 구분하기 -> 유저가 기다리는 시간을 줄일 수 있음
   const result = await generateObject({
     model: openai("gpt-4o"),
     system: "You are code generating AI. Output only code with proper schema",

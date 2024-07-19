@@ -1,12 +1,14 @@
 "use client";
 import React, { useEffect, useRef } from "react";
 import { MessageBubble } from "./MessageBubble";
+import { Message } from "@/types/types";
 
 interface CoheeThreadProps {
-  coheeMessageContent: { content: string; type: string }[];
+  coheeMessages: Message[];
 }
 
-export function CoheeThread({ coheeMessageContent }: CoheeThreadProps) {
+export function CoheeThread({ coheeMessages }: CoheeThreadProps) {
+  // console.log(coheeMessage);
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
   const scrollToBottom = () => {
@@ -17,23 +19,22 @@ export function CoheeThread({ coheeMessageContent }: CoheeThreadProps) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [coheeMessageContent]);
+  }, [coheeMessages]);
 
   return (
     <div className="flex flex-col overflow-hidden h-[485px] w-full">
       <div className="flex flex-col justify-start items-start gap-2 overflow-scroll flex-1">
-        {coheeMessageContent.map((contentItem, contentIndex) => {
-          if (!contentItem) return null;
-          return (
+        {coheeMessages.map((message) =>
+          message.parsedContent.map((contentItem, contentIndex) => (
             <MessageBubble
-              key={contentIndex}
+              key={`${message.id}-${contentIndex}`}
               className="bg-white text-black"
-              type={contentItem?.type}
+              type={contentItem.type}
             >
-              {contentItem?.content}
+              {contentItem.content}
             </MessageBubble>
-          );
-        })}
+          ))
+        )}
         <div ref={messagesEndRef} />
       </div>
     </div>

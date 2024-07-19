@@ -38,7 +38,6 @@ async function promptFeedbackGenerator(
     messages: [{ role: "user", content: "FEEDBACK:" }],
     onFinish: async (result) => {
       const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
-      const chapter = "89ebb8ef-2651-49cb-9216-5c2c9a32d4b4";
       const llm_module = "036f3402-5ef0-4d4a-b6d6-200097e979bb"; // prompt feedback generator version 1
 
       if (result.finishReason === "stop") {

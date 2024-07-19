@@ -1,5 +1,5 @@
 "use client";
-import React, { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect, useCallback } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -12,43 +12,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRecoilState } from "recoil";
 import {
   codeState,
-  currentContentState,
-  coheeThreadState,
   coheeMessagesState,
-  coheeMessagesContentState,
-  gptThreadState,
   gptMessagesState,
-  gptMessagesContentState,
   lectureState,
   chapterState,
+  currentChapterState,
+  gptThreadsState,
+  coheeThreadsState,
+  currentChapterNumState,
 } from "@/recoil/atoms";
 import { SendIcon } from "./common/Icon/SendIcon";
 import { MessageBubble } from "./MessageBubble";
-import { MessageContentItem } from "@/types/types";
 import { CoheeThread } from "./CoheeThread";
 import Preview from "./Preview";
+import { Message } from "@/types/types";
+import NestedMenu from "./NestedContentMenu";
 
-export function LectureLayout({ lecture_id }: { lecture_id: string }) {
+export function LectureLayout({ lectureId }: { lectureId: string }) {
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
   const [currentCode, setCodeState] = useRecoilState(codeState);
-  const [currentContent, setCurrentContentState] =
-    useRecoilState(currentContentState);
-  const [coheeThread, setCoheeThreadState] = useRecoilState(coheeThreadState);
+  // const [currentContent, setCurrentContentState] =
+  //   useRecoilState(currentContentState);
   const [coheeMessages, setCoheeMessagesState] =
     useRecoilState(coheeMessagesState);
-  const [coheeMessageContent, setCoheeMessageContent] = useRecoilState(
-    coheeMessagesContentState
-  );
-  const [gptThread, setGptThreadState] = useRecoilState(gptThreadState);
   const [gptMessages, setGptMessagesState] = useRecoilState(gptMessagesState);
-  const [gptMessageContent, setGptMessageContent] = useRecoilState(
-    gptMessagesContentState
-  );
   const [lecture, setLectureState] = useRecoilState(lectureState);
-  const [chapter, setChapterState] = useRecoilState(chapterState);
+  const [chapters, setChapterState] = useRecoilState(chapterState);
+  const [currentChapter, setCurrentChapterState] =
+    useRecoilState(currentChapterState);
+  const [gptThreads, setGptThreadsState] = useRecoilState(gptThreadsState);
+  const [coheeThreads, setCoheeThreadsState] =
+    useRecoilState(coheeThreadsState);
+  const [currentChapterNum, setCurrentChapterNum] = useRecoilState(
+    currentChapterNumState
+  );
 
   const handleEditorDidMount: OnMount = (
     editor: monaco.editor.IStandaloneCodeEditor,
@@ -58,7 +58,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
     setIsEditorReady(true);
   };
 
-  const handleSave = () => {
+  const handleSave = useCallback(async () => {
     if (editorRef.current) {
       const code = editorRef.current.getValue();
       setCodeState((prev) => ({
@@ -66,8 +66,28 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
         code: code,
         language: prev?.language || "html", // Ensure language is always defined
       }));
+
+      try {
+        const response = await fetch("/api/code/create", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            chapterId: currentChapter?.id,
+            content: code,
+            language: currentCode?.language || "html",
+          }),
+        });
+
+        if (!response.ok) {
+          console.error("Failed to save code:", await response.json());
+        }
+      } catch (error) {
+        console.error("Error saving code:", error);
+      }
     }
-  };
+  }, [currentChapter?.id, currentCode?.language, setCodeState]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -82,34 +102,28 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [handleSave]);
 
   useEffect(() => {
     const initialize = async () => {
-      if (!lecture_id) return;
+      if (!lectureId) return;
       try {
-        const response = await fetch(`/api/cohee/initialize/${lecture_id}`, {
+        const response = await fetch(`/api/cohee/initialize/${lectureId}`, {
           method: "POST",
         });
         const data = await response.json();
 
         setLectureState(data.lecture);
-        setChapterState(data.chapter);
-        setCoheeThreadState(data.coheeThread);
+        setChapterState(data.chapters);
+        setCurrentChapterState(data.chapters[0] || null);
         setCoheeMessagesState(data.coheeMessages);
-        setGptThreadState(data.gptThread);
         setGptMessagesState(data.gptMessages);
+        // setCoheeThreadState(data.coheeThreads);
+        // setGptThreadState(data.gptThread);
 
-        // Extract and flatten content and store it in gptMessageContent and coheeMessageContent
-        // Extract and flatten content and store it in gptMessageContent and coheeMessageContent
-        const gptContent: MessageContentItem[] = data.gptMessages.flatMap(
-          (message: { content: string }) => JSON.parse(message.content)
-        );
-        setGptMessageContent(gptContent);
-        const coheeContent: MessageContentItem[] = data.coheeMessages.flatMap(
-          (message: { content: string }) => JSON.parse(message.content)
-        );
-        setCoheeMessageContent(coheeContent);
+        // Set threads
+        setCoheeThreadsState(data.coheeThreads);
+        setGptThreadsState(data.gptThreads);
 
         // Set the latest code state
         if (data.latestCode) {
@@ -125,16 +139,15 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
 
     initialize();
   }, [
-    lecture_id,
+    lectureId,
     setLectureState,
     setChapterState,
-    setCoheeThreadState,
     setCoheeMessagesState,
-    setGptThreadState,
     setGptMessagesState,
-    setGptMessageContent,
-    setCoheeMessageContent,
     setCodeState,
+    setCurrentChapterState,
+    setCoheeThreadsState,
+    setGptThreadsState,
   ]);
 
   useEffect(() => {
@@ -148,10 +161,13 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
   const handleCoheeMessageSubmit = async (text: string) => {
     setIsLoading(true);
     try {
-      // Update coheeMessageContent state
-      setCoheeMessageContent((prevContent) => [
-        ...prevContent,
-        { type: "text", content: text },
+      // Update coheeMessagesState with a new message
+      setCoheeMessagesState((prevMessages) => [
+        ...prevMessages,
+        {
+          id: "temp-id",
+          parsedContent: [{ type: "text", content: text }],
+        } as Message,
       ]);
 
       const coheeResponse = await fetch(
@@ -163,7 +179,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
           },
           body: JSON.stringify({
             text,
-            cohee_thread_id: coheeThread?.id,
+            cohee_thread_id: coheeThreads[0]?.id,
           }),
         }
       );
@@ -178,10 +194,13 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
         if (done) break;
         coheeResult += decoder.decode(value);
 
-        setCoheeMessageContent((prevContent) => {
-          return prevContent.map((message, index) => {
-            if (index === prevContent.length - 1) {
-              return { type: "text", content: coheeResult };
+        setCoheeMessagesState((prevMessages) => {
+          return prevMessages.map((message, index) => {
+            if (index === prevMessages.length - 1) {
+              return {
+                ...message,
+                parsedContent: [{ type: "text", content: coheeResult }],
+              };
             }
             return message;
           });
@@ -195,12 +214,17 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
   };
 
   const handleGptMessageSubmit = async (text: string) => {
+    console.log("Starting GPT message submission...");
     setIsLoading(true);
     try {
+      console.log("Sending first request to /api/cohee/code-generator...");
       // First request to /api/cohee/code-generator
-      setGptMessageContent((prevContent) => [
-        ...prevContent,
-        { type: "text", content: text },
+      setGptMessagesState((prevMessages) => [
+        ...prevMessages,
+        {
+          id: "temp-id",
+          parsedContent: [{ type: "text", content: text }],
+        } as Message,
       ]);
 
       const gptResponse = await fetch("/api/cohee/code-generator", {
@@ -210,12 +234,13 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
         },
         body: JSON.stringify({
           text,
-          gpt_thread_id: gptThread?.id,
-          chapter_id: chapter?.id,
+          gpt_thread_id: gptThreads[0]?.id,
+          chapter_id: currentChapter?.id,
         }),
       });
 
       const gptResult = await gptResponse.json();
+      console.log("Received response from /api/cohee/code-generator.");
 
       // Update codeState with the returned code
       setCodeState({
@@ -223,6 +248,9 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
         code: gptResult.code,
       });
 
+      console.log(
+        "Sending second request to /api/cohee/prompt-feedback-generator..."
+      );
       // Second request to /api/cohee/prompt-feedback-generator
       const coheeResponse = await fetch(
         "/api/cohee/prompt-feedback-generator",
@@ -233,7 +261,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
           },
           body: JSON.stringify({
             text,
-            cohee_thread_id: coheeThread?.id,
+            cohee_thread_id: coheeThreads[0]?.id,
           }),
         }
       );
@@ -244,9 +272,12 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
       let coheeResult = "";
 
       // Add an initial empty message
-      setCoheeMessageContent((prevContent) => [
-        ...prevContent,
-        { type: "text", content: "" },
+      setCoheeMessagesState((prevMessages) => [
+        ...prevMessages,
+        {
+          id: "temp-id",
+          parsedContent: [{ type: "text", content: "" }],
+        } as Message,
       ]);
 
       while (true) {
@@ -254,19 +285,122 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
         if (done) break;
         coheeResult += decoder.decode(value);
 
-        setCoheeMessageContent((prevContent) => {
-          return prevContent.map((message, index) => {
-            if (index === prevContent.length - 1) {
-              return { type: "text", content: coheeResult };
+        setCoheeMessagesState((prevMessages) => {
+          return prevMessages.map((message, index) => {
+            if (index === prevMessages.length - 1) {
+              return {
+                ...message,
+                parsedContent: [{ type: "text", content: coheeResult }],
+              };
             }
             return message;
           });
         });
       }
+      console.log(
+        "Received response from /api/cohee/prompt-feedback-generator."
+      );
+
+      console.log("Sending third request to /api/cohee/content-router...");
+      // Third request to /api/cohee/content-router
+      const contentRouterResponse = await fetch("/api/cohee/content-router", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          gpt_thread_id: gptThreads[0]?.id,
+          cohee_thread_id: coheeThreads[0]?.id,
+          current_content: currentChapterNum,
+          lecture_info_id: lecture?.lecture_info,
+          lecture_id: lectureId,
+        }),
+      });
+
+      const contentRouterResult = await contentRouterResponse.json();
+      setCurrentChapterNum(contentRouterResult.object.content);
+
+      // Update threads and chapters if new ones were created
+      if (contentRouterResult.newGptThread) {
+        setGptThreadsState((prevThreads) => [
+          ...prevThreads,
+          contentRouterResult.newGptThread,
+        ]);
+      }
+
+      if (contentRouterResult.newCoheeThread) {
+        setCoheeThreadsState((prevThreads) => [
+          ...prevThreads,
+          contentRouterResult.newCoheeThread,
+        ]);
+      }
+
+      if (contentRouterResult.newChapter) {
+        setChapterState((prevChapters) => [
+          ...prevChapters,
+          contentRouterResult.newChapter,
+        ]);
+        setCurrentChapterState(contentRouterResult.newChapter);
+      }
+
+      console.log(
+        "Sending request to /api/cohee/concept-feedback-generator..."
+      );
+      // Fourth request to /api/cohee/concept-feedback-generator
+      const conceptFeedbackResponse = await fetch(
+        "/api/cohee/concept-feedback-generator",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            gpt_thread_id: gptThreads[0]?.id,
+            cohee_thread_id: coheeThreads[0]?.id,
+            current_content: currentChapterNum,
+          }),
+        }
+      );
+
+      const conceptReader = conceptFeedbackResponse.body?.getReader();
+      if (!conceptReader)
+        throw new Error("Failed to get reader from Concept Feedback response");
+      let conceptResult = "";
+
+      // Add an initial empty message
+      setCoheeMessagesState((prevMessages) => [
+        ...prevMessages,
+        {
+          id: "temp-id",
+          parsedContent: [{ type: "text", content: "" }],
+        } as Message,
+      ]);
+
+      while (true) {
+        const { done, value } = await conceptReader.read();
+        if (done) break;
+        conceptResult += decoder.decode(value);
+
+        setCoheeMessagesState((prevMessages) => {
+          return prevMessages.map((message, index) => {
+            if (index === prevMessages.length - 1) {
+              return {
+                ...message,
+                parsedContent: [{ type: "text", content: conceptResult }],
+              };
+            }
+            return message;
+          });
+        });
+      }
+      console.log(
+        "Received response from /api/cohee/concept-feedback-generator."
+      );
     } catch (error) {
       console.error("Failed to send GPT message:", error);
     } finally {
       setIsLoading(false);
+      console.log("Finished GPT message submission.");
     }
   };
 
@@ -288,6 +422,10 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
     }
   };
 
+  const chapterContent = JSON.parse(
+    lecture?.lecture_info_lecture_lecture_infoTolecture_info?.chapter || "[]"
+  );
+
   return (
     <ResizablePanelGroup direction="horizontal" className="flex-1">
       {/* 왼쪽 메뉴바 */}
@@ -298,21 +436,19 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
         className="bg-white"
       >
         <div className="flex h-full items-center justify-between px-2 py-6 bg-transparent flex-col">
-          <div>
-            <span className="font-semibold">여기는 왼쪽 메뉴입니다.</span>
-          </div>
-          <div>
+          {/* <NestedMenu chapters={chapterContent} /> */}
+          {/* <div>
             <p className="text-xs">debug panel</p>
             <p className="text-xs">lecture info id: {lecture?.lecture_info}</p>
             <br />
             <p className="text-xs">lecture id: {lecture?.id}</p>
             <br />
-            <p className="text-xs">chapter id: {chapter?.id}</p>
+            <p className="text-xs">chapter id: {currentChapter?.id}</p>
             <br />
-            <p className="text-xs">cohee thread id: {coheeThread?.id}</p>
+            <p className="text-xs">cohee thread id: {coheeThreads[0]?.id}</p>
             <br />
-            <p className="text-xs">gpt thread id: {gptThread?.id}</p>
-          </div>
+            <p className="text-xs">gpt thread id: {gptThreads[0]?.id}</p>
+          </div> */}
         </div>
       </ResizablePanel>
       <ResizableHandle />
@@ -335,7 +471,7 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
                 <span className="font-semibold text-white text-lg">Cohee</span>
               </div>
               <div className="flex flex-col py-3 px-4 h-full justify-between">
-                <CoheeThread coheeMessageContent={coheeMessageContent} />
+                <CoheeThread coheeMessages={coheeMessages} />
                 <Textarea
                   placeholder="코희에게 질문해보세요."
                   onKeyDown={(event) => handleTextareaSubmit(event, "cohee")}
@@ -390,15 +526,17 @@ export function LectureLayout({ lecture_id }: { lecture_id: string }) {
               <ResizablePanel defaultSize={50} minSize={30}>
                 <div className="flex flex-col h-full items-end justify-between px-1 py-3 gap-4">
                   <div className="flex flex-col flex-1 justify-start items-start gap-1 overflow-y-auto h-0">
-                    {gptMessageContent.map((contentItem, index) => (
-                      <MessageBubble
-                        key={index}
-                        className="bg-[#002991] text-white"
-                        type={contentItem?.type}
-                      >
-                        {contentItem.content}
-                      </MessageBubble>
-                    ))}
+                    {gptMessages.map((message, messageIndex) =>
+                      message.parsedContent.map((contentItem, contentIndex) => (
+                        <MessageBubble
+                          key={`${message.id}-${contentIndex}`}
+                          className="bg-[#002991] text-white"
+                          type={contentItem?.type}
+                        >
+                          {contentItem.content}
+                        </MessageBubble>
+                      ))
+                    )}
                   </div>
                   <Textarea
                     placeholder="GPT에게 지시를 내려보세요."
