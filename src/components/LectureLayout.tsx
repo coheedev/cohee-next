@@ -435,7 +435,25 @@ export function LectureLayout({ lectureId }: { lectureId: string }) {
         maxSize={10}
         className="bg-white"
       >
-        <div className="flex h-full items-center justify-between px-2 py-6 bg-transparent flex-col">
+        <div className="flex h-full items-start px-2 py-6 bg-transparent flex-col gap-2">
+          <h3>좌측 메뉴입니다.</h3>
+          <p>실습: 음악 앱을 위한 앨범 카드 만들기</p>
+          <p>
+            <strong>1. HTML 기본 태그 배우기</strong>
+          </p>
+          <p>1-1. 여는 태그와 닫는 태그 맞추기</p>
+          <p>1-3. HTML 태그 속성 수정하기</p>
+          <p>
+            <strong>2. Div 박스 모델 이해하기</strong>
+          </p>
+          <p>2-1. 블럭과 인라인 블럭 차이 이해하기</p>
+          <p>2-2. p 태그와 span 태그 바꿔보기</p>
+          <p>
+            <strong>3. 스타일 적용하기</strong>
+          </p>
+          <p>3-1. style 태그를 활용해 스타일 적용하기</p>
+          <p>3-2. GPT가 제공한 코드의 스타일 변화하기</p>
+
           {/* <NestedMenu chapters={chapterContent} /> */}
           {/* <div>
             <p className="text-xs">debug panel</p>
