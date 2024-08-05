@@ -4,13 +4,16 @@
 // 아래 링크의 docs를 참고하여 작성해주세요.
 // https://sdk.vercel.ai/docs/getting-started/nextjs-app-router
 
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/prisma";
+import { createClient } from "@/utils/supabase/server";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
-
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API,
+});
 // export const runtime = "edge";
 // Error: PrismaClient is not configured to run in Edge Runtime (Vercel Edge Functions, Vercel Edge Middleware, Next.js (Pages Router) Edge API Routes, Next.js (App Router) Edge Route Handlers or Next.js Middleware). In order to run Prisma Client on edge runtime, either:
 // - Use Prisma Accelerate: https://pris.ly/d/accelerate
@@ -21,6 +24,18 @@ export async function POST(req: Request) {
   // lecture_id: c60ca397-d4ce-41f0-bf7a-e6874399ef47
   // chapter_id: 89ebb8ef-2651-49cb-9216-5c2c9a32d4b4
   // thread_id: c6a9f739-25eb-4c7e-b39c-834bc0303cf7
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "User not authenticated" }), {
+      status: 401,
+    });
+  }
+
+  const OWNER_ID = user.id;
   const { gpt_thread_id, cohee_thread_id, current_content } = await req.json();
   // 코희 thread, gpt thread를 시간순으로 정리 (형식은 db Message)
   // TODO: 토큰 적당히 자르기
@@ -70,18 +85,21 @@ export async function POST(req: Request) {
     current_content === "1.1"
   ) {
     const result = await content1_1ConceptGenerator(
+      OWNER_ID,
       stringifiedScript,
       cohee_thread_id
     );
     return result.toTextStreamResponse();
   } else if (current_content === "1.2") {
     const result = await content1_2ConceptGenerator(
+      OWNER_ID,
       stringifiedScript,
       cohee_thread_id
     );
     return result.toTextStreamResponse();
   } else if (current_content === "1.3") {
     const result = await content1_3ConceptGenerator(
+      OWNER_ID,
       stringifiedScript,
       cohee_thread_id
     );
@@ -94,6 +112,7 @@ export async function POST(req: Request) {
 }
 
 async function content1_1ConceptGenerator(
+  owner: string,
   stringifiedScript: string,
   cohee_thread_id: string
 ) {
@@ -104,7 +123,6 @@ async function content1_1ConceptGenerator(
     system: system_prompt,
     messages: [],
     onFinish: async (result) => {
-      const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
       const llm_module = "36562c2c-c61b-4f21-b9cf-0a5f3f8d5015"; // L1C1_1 concept feedback generator version 1
 
       if (result.finishReason === "stop") {
@@ -148,6 +166,7 @@ async function content1_1ConceptGenerator(
 }
 
 async function content1_2ConceptGenerator(
+  owner: string,
   stringifiedScript: string,
   cohee_thread_id: string
 ) {
@@ -158,7 +177,6 @@ async function content1_2ConceptGenerator(
     system: system_prompt,
     messages: [],
     onFinish: async (result) => {
-      const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
       const llm_module = "c029137f-6d55-4a13-a931-b32d01fccbab"; // L1C1_2 concept feedback generator version 1
 
       if (result.finishReason === "stop") {
@@ -192,6 +210,7 @@ async function content1_2ConceptGenerator(
 }
 
 async function content1_3ConceptGenerator(
+  owner: string,
   stringifiedScript: string,
   cohee_thread_id: string
 ) {
@@ -202,7 +221,6 @@ async function content1_3ConceptGenerator(
     system: system_prompt,
     messages: [],
     onFinish: async (result) => {
-      const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
       const llm_module = "4790b2da-f882-44d3-bcfc-82c9b7983b70"; // L1C1_3 concept feedback generator version 1
 
       if (result.finishReason === "stop") {

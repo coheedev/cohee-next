@@ -4,9 +4,9 @@
 // 아래 링크의 docs를 참고하여 작성해주세요.
 // https://sdk.vercel.ai/docs/getting-started/nextjs-app-router
 
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { streamText } from "ai";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/prisma";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
@@ -15,6 +15,9 @@ export const maxDuration = 30;
 // Error: PrismaClient is not configured to run in Edge Runtime (Vercel Edge Functions, Vercel Edge Middleware, Next.js (Pages Router) Edge API Routes, Next.js (App Router) Edge Route Handlers or Next.js Middleware). In order to run Prisma Client on edge runtime, either:
 // - Use Prisma Accelerate: https://pris.ly/d/accelerate
 // - Use Driver Adapters: https://pris.ly/d/driver-adapters
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API,
+});
 
 export async function POST(req: Request) {
   // user_id: 03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5

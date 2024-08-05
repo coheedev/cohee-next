@@ -1,14 +1,31 @@
-import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { generateObject } from "ai";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/prisma";
 import { host_llm } from "@prisma/client";
+import { createClient } from "@/utils/supabase/server";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-const OWNER_ID = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API,
+});
+
 export async function POST(req: Request) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "User not authenticated" }), {
+      status: 401,
+    });
+  }
+
+  const OWNER_ID = user.id;
+
   const {
     gpt_thread_id,
     cohee_thread_id,
@@ -31,6 +48,7 @@ export async function POST(req: Request) {
   const lectureTitle = lectureInfo.title ?? "";
 
   const result = await contentRouter(
+    OWNER_ID,
     gpt_thread_id,
     cohee_thread_id,
     current_content,
@@ -53,6 +71,7 @@ export async function POST(req: Request) {
 }
 
 async function contentRouter(
+  OWNER_ID: string,
   gpt_thread_id: string,
   cohee_thread_id: string,
   current_content: string = "0",

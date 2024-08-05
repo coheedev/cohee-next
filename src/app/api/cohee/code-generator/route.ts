@@ -8,7 +8,9 @@
 // 1. 로컬에서 테스트하기
 // 2. Postman으로 /api/route 엔드포인트로 보내기
 
-import { openai } from "@ai-sdk/openai";
+// import { openai } from "@ai-sdk/openai";
+import { createOpenAI } from "@ai-sdk/openai";
+
 import {
   generateObject,
   CoreSystemMessage,
@@ -17,30 +19,56 @@ import {
   ImagePart,
 } from "ai";
 import { z } from "zod";
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/prisma";
+import { createClient } from "@/utils/supabase/server";
 
 // Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // export const runtime = "edge";
 // Error: PrismaClient is not configured to run in Edge Runtime (Vercel Edge Functions, Vercel Edge Middleware, Next.js (Pages Router) Edge API Routes, Next.js (App Router) Edge Route Handlers or Next.js Middleware). In order to run Prisma Client on edge runtime, either:
 // - Use Prisma Accelerate: https://pris.ly/d/accelerate
 // - Use Driver Adapters: https://pris.ly/d/driver-adapters
 
+const openai = createOpenAI({
+  apiKey: process.env.OPENAI_API,
+});
 export async function POST(req: Request) {
   // user_id: 03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5
   // lecture_id: c60ca397-d4ce-41f0-bf7a-e6874399ef47
   // chapter_id: 89ebb8ef-2651-49cb-9216-5c2c9a32d4b4
   // thread_id: c6a9f739-25eb-4c7e-b39c-834bc0303cf7
+
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    return new Response(JSON.stringify({ error: "User not authenticated" }), {
+      status: 401,
+    });
+  }
+
   const { text, images, gpt_thread_id, chapter_id } = await req.json();
 
-  const result = await codeGenerator(text, gpt_thread_id, chapter_id, images);
+  const result = await codeGenerator(
+    user.id,
+    text,
+    gpt_thread_id,
+    chapter_id,
+    images
+  );
   return result.toJsonResponse();
 }
 
 // TODO: 이전 context와 코드를 context로 제공하지 않아도 되나?
 // gpt thread의 context를 제공하면 좋을 듯. -> thread에 message 추가하는 것도 좋을 듯
 async function codeGenerator(
+  owner: string,
   text: string,
   gpt_thread_id: string,
   chapter_id: string,
@@ -81,7 +109,6 @@ async function codeGenerator(
   });
 
   const { code, language } = result.object;
-  const owner = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
   const chapter = chapter_id;
   const llm_module = "e58d458a-5f5a-4ae2-aa4c-e2b600d63aee"; // code generator version 1
 

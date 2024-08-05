@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { MarkdownViewer } from "./MarkdownViewer";
-import { cn } from "@/lib/utils";
+import { cn } from "@/utils/shadcn/utils";
 import Image from "next/image";
 
 interface MessageBubbleProps {

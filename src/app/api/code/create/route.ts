@@ -1,7 +1,7 @@
 // /api/code/crete/route.ts
 // 사람이 직접 수정한 코드를 추가하는 라우터입니다.
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/prisma";
 import { code_author } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 

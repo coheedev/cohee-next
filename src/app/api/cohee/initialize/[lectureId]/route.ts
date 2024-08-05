@@ -1,15 +1,24 @@
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/utils/prisma";
 import { NextRequest, NextResponse } from "next/server";
 import { host_llm, message, thread, chapter, code } from "@prisma/client";
-
-const OWNER_ID = "03f3ec0f-1cbb-438c-954a-4dfaa35c1ac5";
+import { createClient } from "@/utils/supabase/server";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: { lectureId: string } }
 ) {
-  const { lectureId } = params;
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json(
+      { error: "User not authenticated" },
+      { status: 401 }
+    );
+  }
 
+  const { lectureId } = params;
   if (!lectureId) {
     return NextResponse.json(
       { error: "Lecture ID is required" },
@@ -21,7 +30,7 @@ export async function POST(
     const result = await prisma.$transaction(async (prisma) => {
       // Fetch the lecture and its chapters
       const lecture = await prisma.lecture.findUnique({
-        where: { id: lectureId },
+        where: { id: lectureId, owner: user.id },
         include: {
           lecture_info_lecture_lecture_infoTolecture_info: true,
           chapter_chapter_lectureTolecture: true,
@@ -29,7 +38,7 @@ export async function POST(
       });
 
       if (!lecture) {
-        throw new Error("Lecture not found");
+        throw new Error("Lecture not Authorized");
       }
 
       const chapters = lecture.chapter_chapter_lectureTolecture;
@@ -39,7 +48,7 @@ export async function POST(
         chapters.map(async (chapter) => {
           const gptThread = await prisma.thread.findFirst({
             where: {
-              owner: OWNER_ID,
+              owner: user.id,
               chapter: chapter.id,
               host_llm: host_llm.gpt,
             },
@@ -47,7 +56,7 @@ export async function POST(
 
           const coheeThread = await prisma.thread.findFirst({
             where: {
-              owner: OWNER_ID,
+              owner: user.id,
               chapter: chapter.id,
               host_llm: host_llm.cohee,
             },

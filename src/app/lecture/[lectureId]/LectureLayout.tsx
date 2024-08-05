@@ -21,14 +21,14 @@ import {
   coheeThreadsState,
   currentChapterNumState,
 } from "@/recoil/atoms";
-import { SendIcon } from "./common/Icon/SendIcon";
-import { MessageBubble } from "./MessageBubble";
-import { CoheeThread } from "./CoheeThread";
-import Preview from "./Preview";
+import { SendIcon } from "@/components/Icon";
+import { MessageBubble } from "@/components/MessageBubble";
+import { CoheeThread } from "@/components/CoheeThread";
+import Preview from "@/components/Preview";
 import { Message } from "@/types/types";
-import NestedMenu from "./NestedContentMenu";
+import NestedMenu from "@/components/NestedContentMenu";
 
-export function LectureLayout({ lectureId }: { lectureId: string }) {
+export default function LectureLayout({ lectureId }: { lectureId: string }) {
   const [isEditorReady, setIsEditorReady] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);

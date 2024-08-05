@@ -1,4 +1,5 @@
-import { prisma } from "@/lib/prisma";
+// DEPRECATED: This file is no longer used in the current version of the app.
+import { prisma } from "@/utils/prisma";
 import { status, host_llm, message_role } from "@prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 
